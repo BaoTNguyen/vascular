@@ -1,0 +1,20 @@
+[submodule "arteries"]
+	path = arteries
+	url = https://github.com/BaoTNguyen/arteries.git
+	branch = main
+[submodule "capillaries"]
+	path = capillaries
+	url = https://github.com/BaoTNguyen/capillaries.git
+	branch = main
+[submodule "heart"]
+	path = heart
+	url = https://github.com/BaoTNguyen/heart.git
+	branch = main
+[submodule "marrow"]
+	path = marrow
+	url = https://github.com/BaoTNguyen/marrow.git
+	branch = main
+[submodule "plexus"]
+	path = plexus
+	url = https://github.com/BaoTNguyen/plexus.git
+	branch = main
