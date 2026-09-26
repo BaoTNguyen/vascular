@@ -1,0 +1,98 @@
+name: install
+
+# Does a stranger's clone work? Each repo's own CI tests dev work against
+# sibling source checkouts. This tests what the READMEs tell a new user to do,
+# from GitHub, on a bare runner: no Postgres, no GPU, no docker.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * *"   # the repos' mains move without telling this one
+  workflow_dispatch:
+
+jobs:
+  umbrella:
+    name: umbrella (${{ matrix.pins }}, py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]   # 3.11 is plexus's floor (tomllib)
+        # pinned: what `clone --recursive` hands out today.
+        # latest: what it would hand out after the next bump.
+        pins: [pinned, latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - if: matrix.pins == 'latest'
+        run: git submodule update --remote
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      # The README quick start, verbatim.
+      - run: pip install -e capillaries -e arteries -e heart -e plexus pytest
+      - name: every suite
+        run: |
+          status=0
+          for r in heart plexus arteries capillaries marrow; do
+            echo "::group::$r"
+            (cd "$r" && python -m pytest -q) || { echo "::error::$r failed"; status=1; }
+            echo "::endgroup::"
+          done
+          exit $status
+
+  standalone:
+    name: ${{ matrix.repo }} + [${{ matrix.siblings }}]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The README's "needs beside it" column. Only these siblings get cloned,
+        # so a repo that grows a new sibling dependency goes red here until the
+        # table (and this list) say so.
+        include:
+          - { repo: heart,       siblings: "",          install: "pip install -e . pytest",   test: "python -m pytest -q" }
+          - { repo: capillaries, siblings: "",          install: "pip install -e . pytest",   test: "python -m pytest -q" }
+          - { repo: plexus,      siblings: heart,       install: "uv sync",                   test: "uv run pytest -q" }
+          - { repo: arteries,    siblings: capillaries, install: "uv sync",                   test: "uv run pytest -q" }
+          # training deps (torch, bitsandbytes) aren't reachable from the suite
+          - { repo: marrow,      siblings: heart,       install: "pip install -e ../heart pytest", test: "python -m pytest -q" }
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+      - name: clone from GitHub, as a stranger would
+        run: |
+          for r in ${{ matrix.repo }} ${{ matrix.siblings }}; do
+            git clone --depth 1 "https://github.com/BaoTNguyen/$r"
+          done
+      - working-directory: ${{ matrix.repo }}
+        run: ${{ matrix.install }}
+      - working-directory: ${{ matrix.repo }}
+        run: ${{ matrix.test }}
+
+  bump:
+    # The CD half: pins follow each repo's main, once that main has passed both
+    # jobs above. Pushes made with GITHUB_TOKEN don't retrigger this workflow.
+    needs: [umbrella, standalone]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      # ponytail: bumps to main's tip *now*, which can be a commit newer than
+      # the one tested if a repo pushed mid-run; the next scheduled run tests it.
+      # Pass the tested SHAs between jobs if that window ever bites.
+      - run: |
+          git submodule update --remote
+          git diff --quiet && { echo "pins already current"; exit 0; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Bump the stack to each repo's latest main"
+          git push

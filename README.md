@@ -1,5 +1,7 @@
 # vascular
 
+[![install](https://github.com/BaoTNguyen/vascular/actions/workflows/install.yml/badge.svg)](https://github.com/BaoTNguyen/vascular/actions/workflows/install.yml)
+
 The whole agent stack in one clone. Each directory here is a git submodule
 pointing at its own repo. Nothing is copied, so this umbrella and the individual
 repos can't drift apart: clone either way and you get the same code, in the same
@@ -21,7 +23,8 @@ marrow ──> heart
 
 ## Quick start
 
-Python 3.10+ and git. That's all the tests need.
+Python 3.11+ and git. That's all the tests need. (plexus needs 3.11; the other
+four run on 3.10 on their own.)
 
 ```bash
 git clone --recursive https://github.com/BaoTNguyen/vascular && cd vascular
@@ -80,4 +83,8 @@ git pull --recurse-submodules        # the versions this umbrella pins
 git submodule update --remote        # or: every repo's latest main
 ```
 
-Maintainers bump the pins with `git submodule update --remote && git commit -am "Bump the stack"`.
+The pins move themselves. [`install.yml`](.github/workflows/install.yml) runs
+daily: the quick start above against both the pins and every repo's latest
+main, plus each repo cloned alone with only the siblings in the table. When all
+of that passes, it commits the new pins. A red badge means one of those routes
+broke for a new user; the job name says which.
