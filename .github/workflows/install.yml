@@ -28,19 +28,16 @@ jobs:
           submodules: recursive
       - if: matrix.pins == 'latest'
         run: git submodule update --remote
-      - uses: actions/setup-python@v7
+      - uses: astral-sh/setup-uv@v10.2.0   # no floating major tags after v7
         with:
           python-version: ${{ matrix.python }}
-      # The README quick start, verbatim.
-      - run: pip install -e capillaries -e arteries -e heart -e plexus pytest
+      # The README quick start: each repo syncs its own .venv, siblings via ../
       - name: every suite
         run: |
           status=0
-          for r in heart plexus arteries capillaries marrow; do
-            echo "::group::$r"
-            (cd "$r" && python -m pytest -q) || { echo "::error::$r failed"; status=1; }
-            echo "::endgroup::"
-          done
+          run() { echo "::group::$1"; (cd "$1" && eval "$2") || { echo "::error::$1 failed"; status=1; }; echo "::endgroup::"; }
+          for r in heart plexus arteries capillaries; do run "$r" "uv sync && uv run pytest -q"; done
+          run marrow "uv run --only-group dev pytest -q"
           exit $status
 
   standalone:
@@ -53,26 +50,23 @@ jobs:
         # so a repo that grows a new sibling dependency goes red here until the
         # table (and this list) say so.
         include:
-          - { repo: heart,       siblings: "",          install: "pip install -e . pytest",   test: "python -m pytest -q" }
-          - { repo: capillaries, siblings: "",          install: "pip install -e . pytest",   test: "python -m pytest -q" }
-          - { repo: plexus,      siblings: heart,       install: "uv sync",                   test: "uv run pytest -q" }
-          - { repo: arteries,    siblings: capillaries, install: "uv sync",                   test: "uv run pytest -q" }
+          - { repo: heart,       siblings: "" }
+          - { repo: capillaries, siblings: "" }
+          - { repo: plexus,      siblings: heart }
+          - { repo: arteries,    siblings: capillaries }
           # training deps (torch, bitsandbytes) aren't reachable from the suite
-          - { repo: marrow,      siblings: heart,       install: "pip install -e ../heart pytest", test: "python -m pytest -q" }
+          - { repo: marrow,      siblings: heart, test: "uv run --only-group dev pytest -q" }
     steps:
-      - uses: actions/setup-python@v7
+      - uses: astral-sh/setup-uv@v10.2.0   # no floating major tags after v7
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v10.2.0   # no floating major tags after v7
       - name: clone from GitHub, as a stranger would
         run: |
           for r in ${{ matrix.repo }} ${{ matrix.siblings }}; do
             git clone --depth 1 "https://github.com/BaoTNguyen/$r"
           done
       - working-directory: ${{ matrix.repo }}
-        run: ${{ matrix.install }}
-      - working-directory: ${{ matrix.repo }}
-        run: ${{ matrix.test }}
+        run: ${{ matrix.test || 'uv sync && uv run pytest -q' }}
 
   bump:
     # The CD half: pins follow each repo's main, once that main has passed both

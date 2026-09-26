@@ -23,24 +23,29 @@ marrow ──> heart
 
 ## Quick start
 
-Python 3.11+ and git. That's all the tests need. (plexus needs 3.11; the other
-four run on 3.10 on their own.)
+[uv](https://docs.astral.sh/uv/) and git. uv fetches a suitable Python itself
+(plexus needs 3.11+; the other four run on 3.10).
 
 ```bash
 git clone --recursive https://github.com/BaoTNguyen/vascular && cd vascular
-python3 -m venv .venv && . .venv/bin/activate
-pip install -e capillaries -e arteries -e heart -e plexus pytest
-for r in heart plexus arteries capillaries marrow; do (cd $r && python -m pytest -q) || echo "^ $r failed"; done
+for r in heart plexus arteries capillaries; do (cd $r && uv sync && uv run pytest -q) || echo "^ $r failed"; done
+(cd marrow && uv run --only-group dev pytest -q)
 ```
 
 Forgot `--recursive`? Run `git submodule update --init`.
 
-marrow's tests need only heart. Training needs `pip install -e marrow` (torch,
-bitsandbytes, a CUDA GPU), so that step is left out above.
+Each repo gets its own `.venv`. Its siblings come from `../<name>` through
+`[tool.uv.sources]`, which resolves here exactly as it does in a standalone
+clone, so the commands are the same in both layouts. marrow's tests need only
+heart; plain `uv sync` there also pulls the training stack (torch,
+bitsandbytes, a CUDA GPU), so the quick start skips it.
 
-The repos that ship a `uv.lock` (arteries, plexus) also work with `uv sync`
-from their own directory, because their `../sibling` path sources resolve here
-exactly as they do in a standalone clone.
+For the commands on your PATH, to use from any repo:
+
+```bash
+uv tool install --editable heart --with-editable arteries
+uv tool install --editable plexus --with-editable heart
+```
 
 ## Taking just one piece
 
@@ -53,8 +58,8 @@ git clone https://github.com/BaoTNguyen/heart
 git clone https://github.com/BaoTNguyen/plexus    # plexus needs heart next to it
 ```
 
-None of these packages is on PyPI. `pip install heart` fetches somebody
-else's project, so always install from the checkout (`pip install -e ./heart`).
+None of these packages is on PyPI. `uv add heart` or `uv tool install heart`
+fetches somebody else's project, so always install from the checkout.
 
 ## What the tests skip, and what running for real needs
 
@@ -69,11 +74,12 @@ Tests pass on a bare machine. What they can't reach, they skip:
 
 ## Both layouts on one machine
 
-Harmless as long as each venv points at one set. An editable install records
-its path, and the last `pip install -e` wins. Check which copy you're getting:
+They can't interfere: every checkout keeps its own `.venv`. The one shared
+thing is `uv tool install`, where the last install wins. To see which checkout
+your `heart` command runs:
 
 ```bash
-python -c "import heart; print(heart.__file__)"
+"$(uv tool dir)/heart/bin/python" -c "import heart; print(heart.__file__)"
 ```
 
 ## Updating
