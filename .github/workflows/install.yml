@@ -63,7 +63,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0   # no floating major tags after v7
       - name: clone from GitHub, as a stranger would
         run: |
           for r in ${{ matrix.repo }} ${{ matrix.siblings }}; do
