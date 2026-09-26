@@ -23,12 +23,12 @@ jobs:
         # latest: what it would hand out after the next bump.
         pins: [pinned, latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - if: matrix.pins == 'latest'
         run: git submodule update --remote
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
       # The README quick start, verbatim.
@@ -60,10 +60,10 @@ jobs:
           # training deps (torch, bitsandbytes) aren't reachable from the suite
           - { repo: marrow,      siblings: heart,       install: "pip install -e ../heart pytest", test: "python -m pytest -q" }
     steps:
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v10
       - name: clone from GitHub, as a stranger would
         run: |
           for r in ${{ matrix.repo }} ${{ matrix.siblings }}; do
@@ -83,7 +83,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       # ponytail: bumps to main's tip *now*, which can be a commit newer than
