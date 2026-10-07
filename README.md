@@ -14,10 +14,12 @@ sibling layout the repos already expect of each other.
 | [capillaries](https://github.com/BaoTNguyen/capillaries) | retrieves the right prompt or skill for a situation | nothing (arteries optional) |
 | [arteries](https://github.com/BaoTNguyen/arteries) | memory and tracing for agent sessions | capillaries |
 | [marrow](https://github.com/BaoTNguyen/marrow) | RL training on heart's episodes (GPU) | heart |
+| [pulse](https://github.com/BaoTNguyen/pulse) | the event journal: collects every component's events, one query API | nothing (design only; no code yet) |
 
 ```text
 plexus ──> heart ··> arteries <──> capillaries
 marrow ──> heart
+pulse  <·· every component appends events to ~/.vascular/spool/events; pulse imports none of them
            ──> required   ··> optional
 ```
 

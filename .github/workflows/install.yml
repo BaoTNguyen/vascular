@@ -43,6 +43,8 @@ jobs:
             marrow/marrow/vascular_paths.py | tee hashes.txt
           [ "$(cut -d' ' -f1 hashes.txt | sort -u | wc -l)" = 1 ] || { echo "::error::vascular_paths.py copies differ"; exit 1; }
       # The README quick start: each repo syncs its own .venv, siblings via ../
+      # pulse is design-only: it joins this loop and the standalone matrix
+      # below with its first test suite.
       - name: every suite
         run: |
           status=0
