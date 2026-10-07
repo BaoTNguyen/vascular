@@ -18,6 +18,10 @@
 # Use:
 #   HEART_SANDBOX=docker-sbx HEART_SANDBOX_IMAGE=heart-agent:vascular plexus run ...
 #
+# Point the named contexts at checkouts that hold what was merged (the dev
+# checkouts beside this umbrella, e.g. heart=../heart). The umbrella's own
+# submodule dirs can be far behind.
+#
 # ponytail: heart and capillaries are snapshots from build time, so plexus,
 # marrow and arteries check against those until the next rebuild. Rebuild after
 # either lands anything the others import.
@@ -39,5 +43,23 @@ RUN rm -rf /opt/capillaries/src/*.egg-info /opt/heart-src/src/*.egg-info \
  && uv pip install --system --no-cache --reinstall-package heart /opt/heart-src /opt/capillaries \
         -r /tmp/arteries/pyproject.toml --extra ontology \
  && rm -rf /tmp/arteries
+
+# Rust, for pulse (and any component ported later). The toolchain is copied from
+# the official image at a pinned version; gcc + libc6-dev are the linker cargo
+# needs. The checkout is mounted read-only, so build output goes to /tmp, and
+# CARGO_HOME belongs to `agent` because cargo takes a lock file inside it even
+# when nothing is downloaded.
+# ponytail: no crates are baked yet -- pulse has no Cargo.lock. The verifier has
+# no network, so once it does, add `COPY --from=pulse Cargo.toml Cargo.lock` +
+# `cargo fetch` here, and rebuild whenever pulse's dependencies change, exactly
+# like the Python deps above.
+COPY --from=rust:1.99.0-slim-trixie /usr/local/rustup /usr/local/rustup
+COPY --from=rust:1.99.0-slim-trixie /usr/local/cargo /usr/local/cargo
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo \
+    CARGO_TARGET_DIR=/tmp/cargo-target PATH=/usr/local/cargo/bin:$PATH
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends gcc libc6-dev \
+ && rm -rf /var/lib/apt/lists/* \
+ && chown -R agent:agent /usr/local/cargo
 
 USER agent
