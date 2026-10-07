@@ -31,6 +31,17 @@ jobs:
       - uses: astral-sh/setup-uv@v10.2.0   # no floating major tags after v7
         with:
           python-version: ${{ matrix.python }}
+      # vascular_paths.py is vendored verbatim into every repo and its docstring
+      # promises this check. Copies that drift would put state in two places.
+      # ponytail: latest only -- today's pins predate the module entirely. Drop
+      # the `if` once the submodule pins are bumped past phase 1.
+      - name: vendored vascular_paths is identical everywhere
+        if: matrix.pins == 'latest'
+        run: |
+          sha256sum heart/src/heart/vascular_paths.py plexus/src/plexus/vascular_paths.py \
+            arteries/src/arteries/vascular_paths.py capillaries/src/capillaries/vascular_paths.py \
+            marrow/marrow/vascular_paths.py | tee hashes.txt
+          [ "$(cut -d' ' -f1 hashes.txt | sort -u | wc -l)" = 1 ] || { echo "::error::vascular_paths.py copies differ"; exit 1; }
       # The README quick start: each repo syncs its own .venv, siblings via ../
       - name: every suite
         run: |
