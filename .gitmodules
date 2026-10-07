@@ -18,3 +18,7 @@
 	path = plexus
 	url = https://github.com/BaoTNguyen/plexus.git
 	branch = main
+[submodule "pulse"]
+	path = pulse
+	url = https://github.com/BaoTNguyen/pulse.git
+	branch = main
