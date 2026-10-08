@@ -52,6 +52,15 @@ jobs:
           for r in heart plexus arteries capillaries; do run "$r" "uv sync && uv run pytest -q"; done
           run marrow "uv run --only-group dev pytest -q"
           exit $status
+      # pulse is Rust. Same toolchain as the verifier image (verifier.Dockerfile);
+      # bump both together. Runners ship rustup, so no third-party action.
+      # Does nothing until pulse has a crate; --locked because the lockfile is
+      # committed and the verifier can't write one.
+      - name: pulse (Rust)
+        run: |
+          [ -f pulse/Cargo.toml ] || { echo "pulse has no crate yet"; exit 0; }
+          rustup toolchain install 1.99.0 --profile minimal && rustup default 1.99.0
+          cd pulse && cargo test --locked
 
   standalone:
     name: ${{ matrix.repo }} + [${{ matrix.siblings }}]
