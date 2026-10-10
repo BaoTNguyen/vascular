@@ -14,7 +14,7 @@
 # Build (from this directory; the named contexts can point at any checkouts):
 #   docker build -f verifier.Dockerfile -t heart-agent:vascular \
 #     --build-context heart=heart --build-context capillaries=capillaries \
-#     --build-context arteries=arteries .
+#     --build-context arteries=arteries --build-context pulse=pulse .
 # Use:
 #   HEART_SANDBOX=docker-sbx HEART_SANDBOX_IMAGE=heart-agent:vascular plexus run ...
 #
@@ -49,17 +49,23 @@ RUN rm -rf /opt/capillaries/src/*.egg-info /opt/heart-src/src/*.egg-info \
 # needs. The checkout is mounted read-only, so build output goes to /tmp, and
 # CARGO_HOME belongs to `agent` because cargo takes a lock file inside it even
 # when nothing is downloaded.
-# ponytail: no crates are baked yet -- pulse has no Cargo.lock. The verifier has
-# no network, so once it does, add `COPY --from=pulse Cargo.toml Cargo.lock` +
-# `cargo fetch` here, and rebuild whenever pulse's dependencies change, exactly
-# like the Python deps above.
 COPY --from=rust:1.99.0-slim-trixie /usr/local/rustup /usr/local/rustup
 COPY --from=rust:1.99.0-slim-trixie /usr/local/cargo /usr/local/cargo
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo \
     CARGO_TARGET_DIR=/tmp/cargo-target PATH=/usr/local/cargo/bin:$PATH
 RUN apt-get update \
  && apt-get install -y --no-install-recommends gcc libc6-dev \
- && rm -rf /var/lib/apt/lists/* \
+ && rm -rf /var/lib/apt/lists/*
+
+# The verifier has no network, so everything cargo and rustup would download is
+# fetched here: pulse's rust-toolchain.toml components (without them rustup
+# tries the network on every cargo call) and every crate in pulse's Cargo.lock.
+# Rebuild whenever pulse's dependencies change, exactly like the Python deps.
+COPY --from=pulse Cargo.toml Cargo.lock rust-toolchain.toml /tmp/pulse/
+RUN rustup component add rustfmt clippy \
+ && mkdir /tmp/pulse/src && touch /tmp/pulse/src/lib.rs \
+ && cd /tmp/pulse && cargo fetch --locked \
+ && rm -rf /tmp/pulse \
  && chown -R agent:agent /usr/local/cargo
 
 USER agent
