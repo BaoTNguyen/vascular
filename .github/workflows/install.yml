@@ -42,6 +42,18 @@ jobs:
             arteries/src/arteries/vascular_paths.py capillaries/src/capillaries/vascular_paths.py \
             marrow/marrow/vascular_paths.py | tee hashes.txt
           [ "$(cut -d' ' -f1 hashes.txt | sort -u | wc -l)" = 1 ] || { echo "::error::vascular_paths.py copies differ"; exit 1; }
+      # pulse owns the event contract: its emitter and envelope are vendored
+      # verbatim into each Python emitter, and its path cases bind every
+      # vascular_paths (the copies above are identical, so one stands for all).
+      - name: vendored pulse contract matches pulse
+        if: matrix.pins == 'latest'
+        run: |
+          same() { sha256sum "$@" | tee /dev/stderr | cut -d' ' -f1 | sort -u | wc -l | grep -qx 1 || { echo "::error::copies of $1 differ"; exit 1; }; }
+          same pulse/emitters/python/pulse_emit.py heart/src/heart/pulse_emit.py \
+            arteries/src/arteries/pulse_emit.py capillaries/src/capillaries/pulse_emit.py
+          same pulse/contract/envelope.json heart/tests/pulse_envelope.json \
+            arteries/tests/pulse_envelope.json capillaries/tests/pulse_envelope.json
+          python3 pulse/emitters/python/test_paths_vectors.py heart/src/heart/vascular_paths.py
       # The README quick start: each repo syncs its own .venv, siblings via ../
       # pulse is design-only: it joins this loop and the standalone matrix
       # below with its first test suite.
