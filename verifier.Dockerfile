@@ -14,7 +14,8 @@
 # Build (from this directory; the named contexts can point at any checkouts):
 #   docker build -f verifier.Dockerfile -t heart-agent:vascular \
 #     --build-context heart=heart --build-context capillaries=capillaries \
-#     --build-context arteries=arteries --build-context pulse=pulse .
+#     --build-context arteries=arteries --build-context pulse=pulse \
+#     --build-arg HEART_COMMIT=$(git -C heart rev-parse HEAD) .
 # Use:
 #   HEART_SANDBOX=docker-sbx HEART_SANDBOX_IMAGE=heart-agent:vascular plexus run ...
 #
@@ -22,10 +23,16 @@
 # checkouts beside this umbrella, e.g. heart=../heart). The umbrella's own
 # submodule dirs can be far behind.
 #
-# ponytail: heart and capillaries are snapshots from build time, so plexus,
-# marrow and arteries check against those until the next rebuild. Rebuild after
-# either lands anything the others import.
+# heart and capillaries are snapshots from build time, so plexus, marrow and
+# arteries check against those until the next rebuild. HEART_COMMIT labels the
+# image with the heart it baked, and `plexus run` refuses an image whose heart
+# src differs from the checkout (heart.sandbox.baked_heart_drift).
+# ponytail: capillaries isn't labelled; rebuild by hand after it lands anything
+# arteries imports, and label it too if that bites.
 FROM heart-agent:latest
+
+ARG HEART_COMMIT=unset
+LABEL vascular.heart.commit=$HEART_COMMIT
 
 # the base image ends as the unprivileged `agent`; install as root, hand it back
 USER root
