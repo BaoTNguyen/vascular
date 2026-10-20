@@ -1,1 +1,3 @@
 .venv/
+# Private roadmap, kept local only.
+DIRECTION.md
