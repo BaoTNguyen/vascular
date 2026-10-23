@@ -106,8 +106,15 @@ config, so the script itself holds nothing private. To install it for all the
 repos at once:
 
 ```bash
-mkdir -p ~/.vascular/hooks && cp hooks/pre-commit ~/.vascular/hooks/
+mkdir -p ~/.vascular/config/git/hooks && cp hooks/pre-commit ~/.vascular/config/git/hooks/
 for r in . arteries capillaries heart marrow plexus pulse; do
-  git -C "$r" config core.hooksPath ~/.vascular/hooks
+  git -C "$r" config core.hooksPath ~/.vascular/config/git/hooks
 done
 ```
+
+## What lives where
+
+[`manifest.json`](manifest.json) lists every path each component writes under
+`~/.vascular`, sorted into eight kinds (config, secrets, spool, log, state,
+cache, data, backups), and the one retention rule each kind follows. Uninstall
+reads it.

@@ -1,0 +1,194 @@
+{
+ "about": "Every path the stack writes under $VASCULAR_HOME (default ~/.vascular), by component and kind, and the one retention rule each kind follows (TREE_PLAN.md). Uninstall reads this file; anything a component writes must appear here. Paths are relative to $VASCULAR_HOME; a trailing / is a directory.",
+ "home": "$VASCULAR_HOME, else ~/.vascular",
+ "kinds": {
+  "config": {
+   "holds": "settings a person or setup step edits",
+   "deletes": "a person",
+   "uninstall": "keep"
+  },
+  "secrets": {
+   "holds": "credentials; dirs 0700, files 0600",
+   "deletes": "a person",
+   "uninstall": "purge-only",
+   "pulse_reads": "never"
+  },
+  "spool": {
+   "holds": "append-only NDJSON events and their artifacts",
+   "deletes": "pulse only, behind its checkpoint plus grace",
+   "uninstall": "drain-then-delete",
+   "pulse_reads": "yes, the only reader"
+  },
+  "log": {
+   "holds": "human-readable diagnostics",
+   "deletes": "anything; rotate by size",
+   "uninstall": "delete"
+  },
+  "state": {
+   "holds": "regenerable records: runs, locks, offsets",
+   "deletes": "prune by reference",
+   "uninstall": "delete"
+  },
+  "cache": {
+   "holds": "worktrees, downloads, derived stand-ins",
+   "deletes": "anything, any time",
+   "uninstall": "delete"
+  },
+  "data": {
+   "holds": "things a person wrote, and pulse's stored artifacts",
+   "deletes": "a person; `pulse purge` for a captured secret",
+   "uninstall": "purge-only"
+  },
+  "backups": {
+   "holds": "dumps taken before anything destructive",
+   "deletes": "a person",
+   "uninstall": "keep"
+  }
+ },
+ "components": {
+  "heart": {
+   "config": [
+    "config/heart/models.json"
+   ],
+   "secrets": [
+    "secrets/heart/anthropic",
+    "secrets/heart/sentinel",
+    "secrets/heart/tls/"
+   ],
+   "spool": [
+    "spool/events/"
+   ],
+   "log": [
+    "log/heart/egress.log",
+    "log/heart/egress-web.log"
+   ],
+   "state": [
+    "state/heart/runs/",
+    "state/heart/handoffs/locks/",
+    "state/pulse/contexts/"
+   ],
+   "cache": [
+    "cache/heart/ws/",
+    "cache/heart/heart-sentinel/",
+    "cache/heart/codex-verify/",
+    "cache/heart/sbx-probe/"
+   ]
+  },
+  "plexus": {
+   "config": [
+    "config/plexus/registry.json",
+    "config/plexus/workspace.json"
+   ],
+   "spool": [
+    "spool/events/"
+   ],
+   "state": [
+    "state/pulse/contexts/"
+   ]
+  },
+  "arteries": {
+   "spool": [
+    "spool/events/"
+   ],
+   "state": [
+    "state/arteries/usage-offsets.json",
+    "state/pulse/contexts/"
+   ]
+  },
+  "capillaries": {
+   "secrets": [
+    "secrets/capillaries/env"
+   ],
+   "spool": [
+    "spool/events/"
+   ],
+   "log": [
+    "log/capillaries/daemon.log"
+   ],
+   "state": [
+    "state/capillaries/autostart.lock",
+    "state/capillaries/last-autostart",
+    "state/pulse/contexts/"
+   ],
+   "data": [
+    "data/capillaries/"
+   ],
+   "backups": [
+    "backups/capillaries/"
+   ]
+  },
+  "marrow": {
+   "spool": [
+    "spool/events/"
+   ],
+   "state": [
+    "state/pulse/contexts/"
+   ]
+  },
+  "pulse": {
+   "config": [
+    "config/pulse/"
+   ],
+   "spool": [
+    "spool/events/"
+   ],
+   "log": [
+    "log/pulse/collector.log"
+   ],
+   "state": [
+    "state/pulse/collector.lock",
+    "state/pulse/pulse.sock",
+    "state/pulse/contexts/"
+   ],
+   "data": [
+    "data/pulse/artifacts/"
+   ],
+   "backups": [
+    "backups/pulse/"
+   ]
+  },
+  "umbrella": {
+   "config": [
+    "config/git/hooks/pre-commit"
+   ]
+  }
+ },
+ "per_repo": {
+  "about": "Inside each worked repo, not under $VASCULAR_HOME. The ledger is plexus's system of record: uninstall never deletes these.",
+  "paths": [
+   ".vascular/plexus/",
+   ".vascular/arteries/"
+  ]
+ },
+ "outside": {
+  "about": "Owned and refreshed by their own tools; uninstall leaves them alone.",
+  "paths": [
+   "~/.claude/.credentials.json",
+   "~/.codex/auth.json",
+   "systemd user units: pulse.service, plexus.service, capillaries' services, llama-server"
+  ],
+  "databases": [
+   "Postgres `pulse` (dumped to backups/pulse/ under --drop-data)",
+   "Postgres arteries/capillaries schemas"
+  ]
+ },
+ "legacy": {
+  "about": "Pre-tree locations and bridge symlinks, deleted by TREE_PLAN phase 4 (B14) on the user's go-ahead. Nothing writes them.",
+  "paths": [
+   "~/.config/heart/",
+   "~/.local/share/heart/",
+   "~/.local/state/capillaries/",
+   "~/.config/plexus/",
+   "~/.local/state/arteries/",
+   "state/heart/events (symlink to spool/events)",
+   "state/capillaries/daemon.log (now log/capillaries/)"
+  ]
+ },
+ "unfiled": {
+  "about": "Under $VASCULAR_HOME but outside the eight kinds; each needs a kind before uninstall can treat it by rule.",
+  "paths": [
+   "bin/rebuild-verifier (HEART_SANDBOX_REBUILD, F87)",
+   "config/audit/, state/audit/ (the nightly stack audit, not a component)"
+  ]
+ }
+}
