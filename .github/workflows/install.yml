@@ -74,6 +74,58 @@ jobs:
           rustup toolchain install 1.99.0 --profile minimal && rustup default 1.99.0
           cd pulse && cargo test --locked
 
+  roundtrip:
+    # TREE_PLAN phase 6: install -> emit -> collect -> uninstall, then assert
+    # nothing is left outside the kinds uninstall keeps, and that the spool
+    # was drained into pulse before it went.
+    name: uninstall round trip
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: pulse
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 2s --health-retries 30
+    env:
+      VASCULAR_HOME: /tmp/vh
+      PULSE_DATABASE_URL: host=localhost user=postgres dbname=pulse
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: pulse
+        run: |
+          rustup toolchain install 1.99.0 --profile minimal && rustup default 1.99.0
+          cargo build --release --locked --manifest-path pulse/Cargo.toml
+          echo "$PWD/pulse/target/release" >> "$GITHUB_PATH"
+      - name: install and emit
+        run: |
+          mkdir -p $VASCULAR_HOME/config/heart $VASCULAR_HOME/secrets/heart $VASCULAR_HOME/log/heart \
+                   $VASCULAR_HOME/cache/heart/ws $VASCULAR_HOME/backups/arteries
+          echo '{}' > $VASCULAR_HOME/config/heart/models.json
+          echo seed > $VASCULAR_HOME/secrets/heart/sentinel
+          echo line > $VASCULAR_HOME/log/heart/egress.log
+          cd pulse/emitters/python && python3 -c "
+          import os, pulse_emit; from pathlib import Path
+          h = Path(os.environ['VASCULAR_HOME']); j = h / 'spool' / 'events'
+          for i in range(25):
+              pulse_emit.emit('probe', 'roundtrip.test', j, h / 'state' / 'pulse' / 'contexts', payload={'i': i})
+          assert pulse_emit.artifact(b'round trip blob', j)"
+      - name: uninstall keeps config, backups, secrets, data; drains the spool first
+        run: |
+          python3 uninstall.py --yes
+          [ "$(ls $VASCULAR_HOME | tr '\n' ' ')" = "backups config data secrets " ] || { ls -la $VASCULAR_HOME; exit 1; }
+          [ "$(psql "$PULSE_DATABASE_URL" -Atc "select count(*) from events where kind='roundtrip.test'")" = 25 ]
+          [ "$(psql "$PULSE_DATABASE_URL" -Atc "select count(*) from artifacts")" = 1 ]
+      - name: --purge --drop-data leaves config and backups, with a dump
+        run: |
+          python3 uninstall.py --yes --purge --drop-data
+          [ "$(ls $VASCULAR_HOME | tr '\n' ' ')" = "backups config " ] || { ls -laR $VASCULAR_HOME; exit 1; }
+          pg_restore -l $VASCULAR_HOME/backups/pulse/*.dump | grep -q "TABLE DATA public events"
+          [ "$(psql "$PULSE_DATABASE_URL" -Atc "select count(*) from pg_tables where schemaname='public'")" = 0 ]
+
   standalone:
     name: ${{ matrix.repo }} + [${{ matrix.siblings }}]
     runs-on: ubuntu-latest
@@ -105,7 +157,7 @@ jobs:
   bump:
     # The CD half: pins follow each repo's main, once that main has passed both
     # jobs above. Pushes made with GITHUB_TOKEN don't retrigger this workflow.
-    needs: [umbrella, standalone]
+    needs: [umbrella, standalone, roundtrip]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
