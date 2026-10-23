@@ -96,3 +96,18 @@ daily: the quick start above against both the pins and every repo's latest
 main, plus each repo cloned alone with only the siblings in the table. When all
 of that passes, it commits the new pins. A red badge means one of those routes
 broke for a new user; the job name says which.
+
+## Public-repo guard
+
+Every repo here is public. [`hooks/pre-commit`](hooks/pre-commit) refuses a
+commit whose added lines carry a tailnet address (CGNAT, 100.64/10), the
+committer's own email, or a `/home/<user>` path. It reads the email from git
+config, so the script itself holds nothing private. To install it for all the
+repos at once:
+
+```bash
+mkdir -p ~/.vascular/hooks && cp hooks/pre-commit ~/.vascular/hooks/
+for r in . arteries capillaries heart marrow plexus pulse; do
+  git -C "$r" config core.hooksPath ~/.vascular/hooks
+done
+```

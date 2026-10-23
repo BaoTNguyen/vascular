@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Public-repo guard (DIRECTION §14): refuse a commit whose added lines carry a
+# tailnet address (CGNAT, 100.64/10), the committer's own email, or a /home/<user>
+# path. Every component repo points core.hooksPath here. The email is read from
+# git config, never written down, so this file is safe to publish.
+# A false positive: `git commit --no-verify`, and say why in the message.
+set -u
+email=$(git config user.email || true)
+tailnet='(^|[^0-9.])100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3}([^0-9]|$)'
+home='/home/[a-z_][a-z0-9_-]*'
+
+added=$(git diff --cached -U0 --no-color --diff-filter=ACMR -- . | grep -E '^\+' | grep -vE '^\+\+\+ ')
+hits=$( {
+    printf '%s\n' "$added" | grep -nE "$tailnet" | sed 's/^/tailnet address: /'
+    printf '%s\n' "$added" | grep -nE "$home" | sed 's/^/home path: /'
+    [ -n "$email" ] && printf '%s\n' "$added" | grep -niF -- "$email" | sed 's/^/your email: /'
+} | cut -c1-160 )
+[ -z "$hits" ] && exit 0
+echo "public-guard: refusing this commit, the repo is public:" >&2
+printf '  %s\n' "$hits" >&2
+echo "  (git commit --no-verify if it is meant to be there)" >&2
+exit 1
