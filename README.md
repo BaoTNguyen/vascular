@@ -118,3 +118,10 @@ done
 `~/.vascular`, sorted into eight kinds (config, secrets, spool, log, state,
 cache, data, backups), and the one retention rule each kind follows. Uninstall
 reads it.
+
+To take the tree away, stop the systemd units, then `python3 uninstall.py`
+prints what it would do and `--yes` does it. It drains the spool into pulse
+first, keeps `config/` and `backups/`, deletes `secrets/` and `data/` only
+under `--purge`, and leaves your repos' `.vascular/` (the ledger) alone.
+`--drop-data` dumps pulse's database to `backups/pulse/` before dropping its
+tables. CI runs the whole round trip (install, emit, collect, uninstall).
