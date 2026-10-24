@@ -150,6 +150,13 @@
   "umbrella": {
    "config": [
     "config/git/hooks/pre-commit"
+   ],
+   "secrets": [
+    "secrets/pbs/env",
+    "secrets/pbs/encryption.key"
+   ],
+   "backups": [
+    "backups/pbs-staging/"
    ]
   }
  },

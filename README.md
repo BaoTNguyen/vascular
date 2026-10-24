@@ -125,3 +125,6 @@ first, keeps `config/` and `backups/`, deletes `secrets/` and `data/` only
 under `--purge`, and leaves your repos' `.vascular/` (the ledger) alone.
 `--drop-data` dumps pulse's database to `backups/pulse/` before dropping its
 tables. CI runs the whole round trip (install, emit, collect, uninstall).
+
+Backups go to Proxmox Backup Server, client-side encrypted: see
+[`backup/README.md`](backup/README.md).
