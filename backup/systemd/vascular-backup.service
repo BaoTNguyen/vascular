@@ -1,0 +1,6 @@
+[Unit]
+Description=Back the vascular stack up to Proxmox Backup Server
+
+[Service]
+Type=oneshot
+ExecStart=%h/Coding/Projects/vascular/backup/backup.sh
