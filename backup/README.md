@@ -39,6 +39,11 @@ chmod 600 ~/.vascular/secrets/pbs/env
 proxmox-backup-client key create ~/.vascular/secrets/pbs/encryption.key --kdf none
 proxmox-backup-client key paperkey ~/.vascular/secrets/pbs/encryption.key --output-format text
 
+# the restore test's scratch databases need pgvector, which only a superuser
+# can create: an empty template that already has it
+sudo -u postgres createdb -O "$USER" vascular_restore_template
+sudo -u postgres psql -d vascular_restore_template -c 'CREATE EXTENSION vector'
+
 # first run, then prove it restores
 backup/backup.sh && backup/restore-test.sh
 

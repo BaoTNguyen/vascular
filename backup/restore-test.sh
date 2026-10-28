@@ -11,7 +11,7 @@ pg=${PG_SOCKET:-host=/var/run/postgresql}
 set -a; . "$home/secrets/pbs/env"; set +a
 key=(--keyfile "$home/secrets/pbs/encryption.key")
 snap=$(proxmox-backup-client snapshot list --output-format json "host/vascular-$(hostname)" |
-       python3 -c "import json,sys; s=max(json.load(sys.stdin), key=lambda s: s['backup-time']); print(f\"{s['backup-type']}/{s['backup-id']}/{s['backup-time']}\")")
+       python3 -c "import datetime,json,sys; s=max(json.load(sys.stdin), key=lambda s: s['backup-time']); t=datetime.datetime.fromtimestamp(s['backup-time'], datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'); print(f\"{s['backup-type']}/{s['backup-id']}/{t}\")")
 echo "snapshot: $snap"
 out=$(mktemp -d "$home/cache/restore-test.XXXX")
 trap 'rm -rf "$out"; for db in capillaries pulse; do dropdb --if-exists -h /var/run/postgresql "restore_check_$db"; done' EXIT
@@ -19,8 +19,12 @@ proxmox-backup-client restore "$snap" db.pxar "$out/db" "${key[@]}"
 proxmox-backup-client restore "$snap" ledgers.pxar "$out/ledgers" "${key[@]}"
 fail=0
 for db in capillaries pulse; do
-  createdb -h /var/run/postgresql "restore_check_$db"
-  pg_restore -q --no-owner -d "$pg dbname=restore_check_$db" "$out/db/$db.dump"
+  # pgvector is untrusted: only a superuser can create it, so the scratch
+  # database comes from a template that already has it (README, once), and
+  # the dump's own CREATE/COMMENT EXTENSION entries are skipped
+  createdb -h /var/run/postgresql -T vascular_restore_template "restore_check_$db"
+  pg_restore -l "$out/db/$db.dump" | grep -vE 'EXTENSION - vector|COMMENT - EXTENSION vector' > "$out/$db.list"
+  pg_restore --no-owner --exit-on-error -L "$out/$db.list" -d "$pg dbname=restore_check_$db" "$out/db/$db.dump"
   t=$(psql -d "$pg dbname=restore_check_$db" -Atc "select count(*) from information_schema.tables where table_schema not in ('pg_catalog','information_schema')")
   echo "$db: restored $t tables"
   [ "$t" -gt 0 ] || fail=1
