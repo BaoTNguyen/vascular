@@ -66,13 +66,22 @@ RUN apt-get update \
 
 # The verifier has no network, so everything cargo and rustup would download is
 # fetched here: pulse's rust-toolchain.toml components (without them rustup
-# tries the network on every cargo call) and every crate in pulse's Cargo.lock.
+# tries the network on every cargo call) and every crate in every Cargo.lock
+# pulse has ever committed, plus the working tree's: `plexus replay` builds old
+# commits, and when pulse #18 changed the lock, zstd-sys 2.1.1 left the cache
+# and five replay tasks stopped building (2026-10-28). The cache only grows.
 # Rebuild whenever pulse's dependencies change, exactly like the Python deps.
 COPY --from=pulse Cargo.toml Cargo.lock rust-toolchain.toml /tmp/pulse/
+COPY --from=pulse .git /tmp/pulse-git
 RUN rustup component add rustfmt clippy \
- && mkdir /tmp/pulse/src && touch /tmp/pulse/src/lib.rs \
+ && mkdir /tmp/pulse/src && touch /tmp/pulse/src/lib.rs /tmp/pulse/src/main.rs \
  && cd /tmp/pulse && cargo fetch --locked \
- && rm -rf /tmp/pulse \
+ && for c in $(git --git-dir=/tmp/pulse-git log --format=%H -- Cargo.lock); do \
+      git --git-dir=/tmp/pulse-git show "$c:Cargo.toml" > Cargo.toml \
+      && git --git-dir=/tmp/pulse-git show "$c:Cargo.lock" > Cargo.lock \
+      && cargo fetch --locked || exit 1; \
+    done \
+ && rm -rf /tmp/pulse /tmp/pulse-git \
  && chown -R agent:agent /usr/local/cargo
 
 USER agent
