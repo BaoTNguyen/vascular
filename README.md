@@ -1,11 +1,12 @@
-# vascular
+# About
 
 [![install](https://github.com/BaoTNguyen/vascular/actions/workflows/install.yml/badge.svg)](https://github.com/BaoTNguyen/vascular/actions/workflows/install.yml)
 
-The whole agent stack in one clone. Each directory here is a git submodule
-pointing at its own repo. Nothing is copied, so this umbrella and the individual
-repos can't drift apart: clone either way and you get the same code, in the same
-sibling layout the repos already expect of each other.
+vascular is the software factory monorepo: the whole agent stack in one clone.
+Each directory here is a git submodule pointing at its own repo. Nothing is
+copied, so this umbrella and the individual repos can't drift apart: clone
+either way and you get the same code, in the same sibling layout the repos
+already expect of each other.
 
 | repo | what it does | needs beside it |
 |---|---|---|
