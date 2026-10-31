@@ -9,12 +9,12 @@ sibling layout the repos already expect of each other.
 
 | repo | what it does | needs beside it |
 |---|---|---|
-| [heart](https://github.com/BaoTNguyen/heart) | runs coding agents: orchestration, sandbox, reward | nothing (arteries optional) |
+| [heart](https://github.com/BaoTNguyen/heart) | runs coding agents: orchestration, sandbox, verification | nothing (arteries optional) |
 | [plexus](https://github.com/BaoTNguyen/plexus) | turns a goal into features and lands them through heart | heart |
 | [capillaries](https://github.com/BaoTNguyen/capillaries) | retrieves the right prompt or skill for a situation | nothing (arteries optional) |
 | [arteries](https://github.com/BaoTNguyen/arteries) | memory and tracing for agent sessions | capillaries |
 | [marrow](https://github.com/BaoTNguyen/marrow) | RL training on heart's episodes (GPU) | heart |
-| [pulse](https://github.com/BaoTNguyen/pulse) | the event journal: collects every component's events, one query API | nothing (design only; no code yet) |
+| [pulse](https://github.com/BaoTNguyen/pulse) | the event journal: collects every component's events, one query API | nothing |
 
 ```text
 plexus ──> heart ··> arteries <──> capillaries
@@ -35,6 +35,9 @@ for r in heart plexus arteries capillaries; do (cd $r && uv sync && uv run pytes
 ```
 
 Forgot `--recursive`? Run `git submodule update --init`.
+
+pulse is Rust, so it needs [cargo](https://rustup.rs) instead of uv:
+`(cd pulse && cargo test)`.
 
 Each repo gets its own `.venv`. Its siblings come from `../<name>` through
 `[tool.uv.sources]`, which resolves here exactly as it does in a standalone
