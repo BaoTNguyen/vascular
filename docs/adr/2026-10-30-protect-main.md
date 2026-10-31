@@ -5,6 +5,7 @@ approved-by: operator
 drafted-by: operator
 retire-evidence: a change in who acts with the operator's credentials; replay is not valid evidence
 switch: none
+binds: heart, plexus, pulse, arteries, capillaries, marrow
 ---
 # GitHub enforces PR plus CI on main in the six component repos
 

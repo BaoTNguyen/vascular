@@ -5,6 +5,7 @@ approved-by: operator
 drafted-by: operator        # or the plexus episode id that drafted it
 retire-evidence: ""         # what may retire this: "replay ablation", or a threat/requirement change
 switch: none                # the operator-only switch that turns it off, or none
+binds: ""                    # vascular only: the repos a cross-repo decision binds
 ---
 # {short title: the problem and the chosen solution}
 

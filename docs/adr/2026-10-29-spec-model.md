@@ -5,6 +5,7 @@ approved-by: operator
 drafted-by: operator
 retire-evidence: the landing split costing more operator time than the truth layer saves
 switch: none
+binds: plexus
 ---
 # A spec is a proposal; at landing it splits into truth and planning data
 

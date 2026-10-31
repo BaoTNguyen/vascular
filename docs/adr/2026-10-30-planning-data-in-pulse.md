@@ -5,6 +5,7 @@ approved-by: operator
 drafted-by: operator
 retire-evidence: storage cost, or a privacy finding in captured plans
 switch: none
+binds: plexus, pulse
 ---
 # Plan text reaches pulse as artifacts on the existing plan events
 

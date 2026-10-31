@@ -5,6 +5,7 @@ approved-by: operator
 drafted-by: operator
 retire-evidence: authoring friction (ADRs skipped, or growing past the cap)
 switch: none
+binds: all repos
 ---
 # Record decisions as trimmed MADR 4, one file per decision
 
@@ -51,5 +52,7 @@ Rules:
 
 ### Confirmation
 
-Manual for now: `template.md` beside this file. A CI check for the length cap,
-the rejected option and the paths named under Confirmation is not built yet.
+`index.py` beside this file: `--check` in each repo's CI fails when an index is
+stale, a record lacks status or date, or its name doesn't start with its date.
+The length cap, the rejected option and the paths named under Confirmation are
+still checked by hand.
