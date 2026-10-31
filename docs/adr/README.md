@@ -18,11 +18,15 @@ table is stale.
 | [Plan text reaches pulse as artifacts on the existing plan events](2026-10-30-planning-data-in-pulse.md) | 2026-10-30 | plexus, pulse |
 | [Record decisions as trimmed MADR 4, one file per decision](2026-10-30-adr-format.md) | 2026-10-30 | all repos |
 | [A spec is a proposal; at landing it splits into truth and planning data](2026-10-29-spec-model.md) | 2026-10-29 | plexus |
+| [A feature lives in the repo whose question it answers](2026-07-20-ownership-by-question.md) | 2026-07-20 | all repos |
+| [Seams are pinned by contract tests in each repo, not a shared library](2026-07-20-contract-tests.md) | 2026-07-20 | heart, plexus, pulse, arteries, capillaries, marrow |
 <!-- adr-index:end -->
 
 ## In each repo
 
-| Repo | Decision | Date |
-|---|---|---|
-| heart | [A sandboxed verifier gets HEART_PULSE and no credential](https://github.com/BaoTNguyen/heart/blob/main/docs/adr/2026-10-28-verifier-env.md) | 2026-10-28 |
-| plexus | [Refuse unless HEART_SANDBOX is docker-sbx or off](https://github.com/BaoTNguyen/plexus/blob/main/docs/adr/2026-10-13-refuse-unsandboxed-runs.md) | 2026-10-13 |
+Decisions one repo's code enforces live in that repo:
+[heart](https://github.com/BaoTNguyen/heart/tree/main/docs/adr),
+[plexus](https://github.com/BaoTNguyen/plexus/tree/main/docs/adr),
+[pulse](https://github.com/BaoTNguyen/pulse/tree/main/docs/adr),
+[arteries](https://github.com/BaoTNguyen/arteries/tree/main/docs/adr),
+[capillaries](https://github.com/BaoTNguyen/capillaries/tree/main/docs/adr).
