@@ -9,12 +9,12 @@ sibling layout the repos already expect of each other.
 
 | repo | what it does | needs beside it |
 |---|---|---|
-| [heart](https://github.com/BaoTNguyen/heart) | runs coding agents: orchestration, sandbox, reward | nothing (arteries optional) |
+| [heart](https://github.com/BaoTNguyen/heart) | runs coding agents: orchestration, sandbox, verification | nothing (arteries optional) |
 | [plexus](https://github.com/BaoTNguyen/plexus) | turns a goal into features and lands them through heart | heart |
 | [capillaries](https://github.com/BaoTNguyen/capillaries) | retrieves the right prompt or skill for a situation | nothing (arteries optional) |
 | [arteries](https://github.com/BaoTNguyen/arteries) | memory and tracing for agent sessions | capillaries |
 | [marrow](https://github.com/BaoTNguyen/marrow) | RL training on heart's episodes (GPU) | heart |
-| [pulse](https://github.com/BaoTNguyen/pulse) | the event journal: collects every component's events, one query API | nothing (design only; no code yet) |
+| [pulse](https://github.com/BaoTNguyen/pulse) | the event journal: collects every component's events, one query API | nothing |
 
 ```text
 plexus ──> heart ··> arteries <──> capillaries
@@ -35,6 +35,9 @@ for r in heart plexus arteries capillaries; do (cd $r && uv sync && uv run pytes
 ```
 
 Forgot `--recursive`? Run `git submodule update --init`.
+
+pulse is Rust, so it needs [cargo](https://rustup.rs) instead of uv:
+`(cd pulse && cargo test)`.
 
 Each repo gets its own `.venv`. Its siblings come from `../<name>` through
 `[tool.uv.sources]`, which resolves here exactly as it does in a standalone
@@ -62,6 +65,77 @@ git clone https://github.com/BaoTNguyen/plexus    # plexus needs heart next to i
 
 None of these packages is on PyPI. `uv add heart` or `uv tool install heart`
 fetches somebody else's project, so always install from the checkout.
+
+## How the pieces connect
+
+Each component's README describes only that component. What passes between
+them is here.
+
+**plexus → heart.** plexus imports heart as a library (`heart.taskspec`,
+`heart.runner`, `heart.env` and more) rather than shelling out, and heart never imports plexus. While
+plexus dispatches it sets `PLEXUS_GOAL_ID` and `PLEXUS_FEATURE_ID`, which
+heart's `events.emit()` stamps on every event, so `heart observe goal <id>`
+groups a goal's episodes. plexus's `tests/test_heart_api_pin.py` fails the
+moment heart's surface moves.
+
+**heart and arteries.** Episode worktrees carry the repo's `.vascular/arteries`
+hooks and CLI hook config, so CLI agents keep their memory; heart's `api` agent
+calls the repo's `observe.sh` itself. After `run`, `work` or `batch`, heart
+hands the runs dir to `art episodes` when `art` is on PATH (`HEART_INGEST=off`
+turns that off).
+
+**arteries and capillaries.** They import each other in opposite directions,
+at different weights. arteries imports four things from capillaries:
+
+| Import | Where | Degrades if missing? |
+| --- | --- | --- |
+| `capillaries.config.paths` (`EMBED_MODEL`, `EMBED_DIM`, `EMBED_URL`, `QUERY_PREFIX`) | `config.py` | yes, to local defaults |
+| `capillaries.agent.inference.DOMAIN_KEYWORDS` | `extract.py` | yes, to `evergreen.DOMAIN_KEYWORDS` |
+| `capillaries.agent.gate.gate` | `eval.py` | no |
+| `capillaries.find.find` | `eval.py` | no |
+
+capillaries imports one arteries module, `arteries.memory_types` (stdlib
+dataclasses, no database), and only on the memory-aware path:
+`agent/api.py:_build_context_frame` imports it inside the function, and every
+other reference is a string annotation, so capillaries runs without arteries.
+The contract types live with the producer on purpose: they were in capillaries
+until arteries could not define its own output without importing its consumer.
+
+Neither names the other in `dependencies`, because both names are unclaimed on
+PyPI and would resolve to a stranger's package. arteries pins capillaries
+through its `dev` group and `[tool.uv.sources]`; capillaries' memory path needs
+`uv pip install -e ../arteries` (`uv run` keeps it, a plain `uv sync` removes
+it).
+
+The embedding model and dimension are a shared contract, not either repo's
+setting: both write vectors into the same Postgres. They silently disagreed
+once (capillaries on Qwen3-Embedding-0.6B at 1024 dims, arteries on arctic-embed
+at 768), which would have failed every embedding write, so arteries imports the
+values instead of restating them.
+
+**Everything → pulse.** Every component appends events to
+`~/.vascular/spool/events` with a small vendored emitter; pulse collects,
+stores and answers queries, and imports none of them. `heart observe tail` and
+`episode` hand off to `pulse tail --text` and `pulse events --text` when pulse
+is installed.
+
+**heart → marrow.** marrow imports heart for patch scoring (`marrow/reward.py`),
+trains on heart's export, emits training progress through `heart.events`
+(`marrow/spine.py`), and serves a checkpoint back as heart's `api` agent.
+arteries' decision ledger feeds marrow's stage 4, and capillaries'
+prompt-optimization labels and holdout oracle live in `marrow/capillaries_opt/`,
+because a holdout capillaries could enumerate is not a holdout. One round:
+
+```bash
+cd heart
+heart batch tasks/ --agent api --repeat 8          # stage 0: best-of-N, the data engine
+heart export --out episodes.jsonl
+heart dataset sft --out sft.jsonl && heart dataset dpo --out dpo.jsonl
+cd ../marrow                                       # stages 1-3: marrow's README
+accelerate launch --num_processes 2 marrow/train_sft.py --data ../heart/sft.jsonl
+CUDA_VISIBLE_DEVICES=0 vllm serve checkpoints/grpo --port 8000 &
+cd ../heart && heart batch tasks/holdout --agent api   # the only score that counts
+```
 
 ## What the tests skip, and what running for real needs
 
